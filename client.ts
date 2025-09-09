@@ -23,6 +23,6 @@ NodeRuntime.runMain(
             { concurrency: 5 }
         );
 
-        console.log("It's done!");
+        console.log("If this is printed, then bug is fixed!");
     }).pipe(Effect.provide(RunnerLive))
 );
