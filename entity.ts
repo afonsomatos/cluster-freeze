@@ -6,10 +6,9 @@ export const SitemapRetriever = Entity.make("SitemapRetriever", [
     Rpc.make("index", {
         payload: {
             url: Schema.String,
-            date: Schema.DateTimeUtc
         },
         primaryKey(payload) {
-            return `${payload.url}555`;
+            return `${payload.url}`;
         },
         success: Schema.Array(Schema.String),
         error: Schema.Any

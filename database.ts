@@ -11,7 +11,6 @@ export const ClusterDatabaseLive = Layer.unwrapEffect(
         return PgClient.layer({
             url,
             onnotice: Function.constVoid,
-            maxConnections: 5,
         });
     })
 ).pipe(Layer.provide(EnvLoader));

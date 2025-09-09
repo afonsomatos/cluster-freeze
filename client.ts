@@ -1,5 +1,5 @@
 import { NodeClusterRunnerSocket, NodeRuntime } from "@effect/platform-node";
-import { DateTime, Effect, Array, Layer } from "effect";
+import { DateTime, Effect, Array, Layer, Random, Chunk } from "effect";
 import { ClusterDatabaseLive } from "./database";
 import { SitemapRetriever } from "./entity";
 
@@ -11,15 +11,18 @@ const RunnerLive = NodeClusterRunnerSocket.layer({
 NodeRuntime.runMain(
     Effect.gen(function* () {
         const client = yield* SitemapRetriever.client;
-        console.log("wtf");
-        const result = yield* Effect.forEach(
+        const id = Chunk.join(yield* Random.shuffle("abcdefghijklmnopqrstuvwxyz1234567890_"), "");
+
+        console.log("It's going to freeze now...");
+
+        yield* Effect.forEach(
             Array.makeBy(5, () => "https://www.mindfulhealthhaven.com/sitemap.xml"),
             Effect.fn(function* (x) {
-                yield* client("1555xxwr").index({ url: x, date: yield* DateTime.now });
+                yield* client(id).index({ url: x});
             }),
             { concurrency: 5 }
         );
-        console.log("wtf!!");
-        console.log(result.length);
+
+        console.log("It's done!");
     }).pipe(Effect.provide(RunnerLive))
 );
