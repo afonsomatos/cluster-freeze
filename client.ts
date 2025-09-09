@@ -7,19 +7,20 @@ const RunnerLive = NodeClusterRunnerSocket.layer({
     storage: "sql",
 	clientOnly: true
 }).pipe(Layer.provide(ClusterDatabaseLive));
+const randString =  Random.shuffle("abcdefghijklmnopqrstuvwxyz1234567890_").pipe(Effect.map(Chunk.join("")));
 
 NodeRuntime.runMain(
     Effect.gen(function* () {
         const client = yield* SitemapRetriever.client;
-        const id = Chunk.join(yield* Random.shuffle("abcdefghijklmnopqrstuvwxyz1234567890_"), "");
+        const id = yield* randString
+        const key = yield* randString
 
         console.log("It's going to freeze now...");
 
-        yield* Effect.forEach(
-            Array.makeBy(5, () => "https://www.mindfulhealthhaven.com/sitemap.xml"),
-            Effect.fn(function* (x) {
-                yield* client(id).index({ url: x});
-            }),
+        yield* Effect.all(
+            Array.makeBy(5, () => Effect.gen(function* () {
+                yield* client(id).index({ url: key });
+            })),
             { concurrency: 5 }
         );
 

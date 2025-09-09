@@ -11,6 +11,7 @@ export const SitemapRetrieverLive = SitemapRetriever.toLayer(
     Effect.gen(function* () {
         return {
             index: Effect.fn("SitemapRetriever.index")(function* ({ payload: { url } }) {
+				console.log("running")
                 return [];
             })
         };
