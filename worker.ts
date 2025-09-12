@@ -1,6 +1,6 @@
 import { ClusterCron, RunnerAddress } from "@effect/cluster/index";
 import { NodeClusterRunnerSocket, NodeRuntime } from "@effect/platform-node/index";
-import { Cron, Deferred, Effect, Fiber, Layer, Logger, LogLevel, Option } from "effect/index";
+import { Chunk, Cron, Deferred, Effect, Fiber, Layer, Logger, LogLevel, Option, Random } from "effect/index";
 import { ClusterDatabaseLive } from "./database";
 
 const makeRunner = (port: number) =>
@@ -15,20 +15,24 @@ const makeRunner = (port: number) =>
 
 let trigger!: Deferred.Deferred<void>;
 
-const cron = ClusterCron.make({
-    name: "Repro1029x",
-    cron: Cron.unsafeParse("*/1 * * * * *"),
-    calculateNextRunFromPrevious: true, // predictable cadence
-    execute: Effect.gen(function* () {
-        // finish near the end of the second so scheduling happens immediately after
-        yield* Effect.sleep(950);
-        yield* Effect.logWarning("running");
-        // signal outer loop that the reply has been saved
-        if (trigger) {
-            yield* Deferred.succeed(trigger, void 0);
-        }
-    })
-});
+const cron = Layer.unwrapEffect(
+    Effect.gen(function*() {
+        return ClusterCron.make({
+            name: `Repro38hnc`,
+            cron: Cron.unsafeParse("*/1 * * * * *"),
+            calculateNextRunFromPrevious: true, // predictable cadence
+            execute: Effect.gen(function* () {
+                // finish near the end of the second so scheduling happens immediately after
+                yield* Effect.sleep(950);
+                yield* Effect.logWarning("running");
+                // signal outer loop that the reply has been saved
+                if (trigger) {
+                    yield* Deferred.succeed(trigger, void 0);
+                }
+            })
+    });
+}));
+
 const createRunner = (port: number) => Layer.launch(cron.pipe(Layer.provide(makeRunner(port))));
 
 NodeRuntime.runMain(
