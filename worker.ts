@@ -1,6 +1,6 @@
 import { ClusterCron, RunnerAddress } from "@effect/cluster/index";
 import { NodeClusterRunnerSocket, NodeRuntime } from "@effect/platform-node/index";
-import { Cron, Effect, Fiber, Layer, Logger, LogLevel, Option } from "effect/index";
+import { Cron, Deferred, Effect, Fiber, Layer, Logger, LogLevel, Option } from "effect/index";
 import { ClusterDatabaseLive } from "./database";
 
 const makeRunner = (port: number) =>
@@ -13,11 +13,21 @@ const makeRunner = (port: number) =>
         }
     }).pipe(Layer.provide(ClusterDatabaseLive));
 
+let trigger!: Deferred.Deferred<void>;
+
 const cron = ClusterCron.make({
-    name: "Repro1020",
+    name: "Repro1029x",
     cron: Cron.unsafeParse("*/1 * * * * *"),
     calculateNextRunFromPrevious: true, // predictable cadence
-    execute: Effect.sleep(900).pipe(Effect.andThen(Effect.logWarning("running")))
+    execute: Effect.gen(function* () {
+        // finish near the end of the second so scheduling happens immediately after
+        yield* Effect.sleep(950);
+        yield* Effect.logWarning("running");
+        // signal outer loop that the reply has been saved
+        if (trigger) {
+            yield* Deferred.succeed(trigger, void 0);
+        }
+    })
 });
 const createRunner = (port: number) => Layer.launch(cron.pipe(Layer.provide(makeRunner(port))));
 
@@ -28,30 +38,26 @@ NodeRuntime.runMain(
         let b = yield* Effect.forkDaemon(createRunner(4022));
 
         // wait so cron definitely ran at least once before first flap
-        yield* Effect.sleep(1200);
+        yield* Effect.sleep(1500);
 
         while (true) {
-            // align to boundary
-            const now = Date.now();
-            const toBoundary = 1000 - (now % 1000);
-            if (toBoundary > 0) yield* Effect.sleep(toBoundary);
-
-            yield* Effect.logInfo("another cycle");
-            // wait ~915ms into the second, right AFTER execute completes
-            // (reply is saved) and while ensure() is scheduling next run
-            yield* Effect.sleep(915);
+            // wait for current tick to complete (reply saved), then cut runners
+            trigger = yield* Deferred.make<void>();
+            yield* Deferred.await(trigger);
 
             // drop both runners right after reply is written
-            yield* Fiber.interruptFork(a);
-            yield* Fiber.interruptFork(b);
-            yield* Effect.sleep(320); // short window so 'processed' isn't marked
+            yield* Fiber.interrupt(a);
+            yield* Fiber.interrupt(b);
+
+            // keep them down long enough to avoid immediate processed marking
+            yield* Effect.sleep(450);
 
             // bring them back
             a = yield* Effect.forkDaemon(createRunner(4021));
             b = yield* Effect.forkDaemon(createRunner(4022));
 
-            // allow next second to start
-            yield* Effect.sleep(800);
+            // give runners time to bind and next tick to actually run before next cycle
+            yield* Effect.sleep(1200);
         }
     }).pipe(Logger.withMinimumLogLevel(LogLevel.Warning)),
     { disablePrettyLogger: true }
