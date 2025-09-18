@@ -18,9 +18,8 @@ const program = Effect.fn(function* (id: string, key: string) {
 
     yield* Effect.all(
         Array.makeBy(20, () => Effect.gen(function* () {
-            const date = yield* DateTime.now
             yield* Effect.sleep(2000);
-            yield* client(id).index({ url: key, date });
+            yield* client(id).index({ url: key });
         })),
         { concurrency: "unbounded" }
     );

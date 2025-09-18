@@ -8,11 +8,7 @@
   },
   "dependencies": {
      "effect": "latest",
-    "@effect-aws/s3": "latest",
-    "@effect/ai": "latest",
-    "@effect/ai-openai": "latest",
     "@effect/cluster": "latest",
-    "@effect/opentelemetry": "latest",
     "@effect/platform": "latest",
     "@effect/platform-node": "latest",
     "@effect/rpc": "latest",
