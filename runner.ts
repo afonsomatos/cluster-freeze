@@ -16,7 +16,7 @@ export const SitemapRetrieverLive = SitemapRetriever.toLayer(
             })
         };
     }),
-    { concurrency: 2 }
+    { concurrency: 10 }
 ).pipe(Layer.provide(RunnerLive));
 
 NodeRuntime.runMain(SitemapRetrieverLive.pipe(Layer.launch))

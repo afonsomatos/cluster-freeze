@@ -7,23 +7,42 @@ const RunnerLive = NodeClusterRunnerSocket.layer({
     storage: "sql",
 	clientOnly: true
 }).pipe(Layer.provide(ClusterDatabaseLive));
-const randString =  Random.shuffle("abcdefghijklmnopqrstuvwxyz1234567890_").pipe(Effect.map(Chunk.join("")));
 
-NodeRuntime.runMain(
-    Effect.gen(function* () {
-        const client = yield* SitemapRetriever.client;
-        const id = yield* randString
-        const key = yield* randString
+const randString = Random.shuffle("abcdefghijklmnopqrstuvwxyz1234567890_").pipe(Effect.map(Chunk.join("")));
 
-        console.log("It's going to freeze now...");
+const program = Effect.fn(function* (id: string, key: string) {
+    const client = yield* SitemapRetriever.client;
+  
 
-        yield* Effect.all(
-            Array.makeBy(5, () => Effect.gen(function* () {
-                yield* client(id).index({ url: key });
-            })),
-            { concurrency: 5 }
-        );
+    console.log("It's going to freeze now...");
 
-        console.log("If this is printed, then bug is fixed!");
-    }).pipe(Effect.provide(RunnerLive))
-);
+    yield* Effect.all(
+        Array.makeBy(20, () => Effect.gen(function* () {
+            const date = yield* DateTime.now
+            yield* Effect.sleep(2000);
+            yield* client(id).index({ url: key, date });
+        })),
+        { concurrency: "unbounded" }
+    );
+
+    console.log("If this is printed twice, then bug is fixed!");
+}, Effect.provide(RunnerLive))
+
+
+
+async function main() {
+
+    const id = await Effect.runPromise(randString);
+    const key = await Effect.runPromise(randString);
+
+
+NodeRuntime.runMain(program(id, key))
+NodeRuntime.runMain(program(id, key))
+NodeRuntime.runMain(program(id, key))
+NodeRuntime.runMain(program(id, key))
+NodeRuntime.runMain(program(id, key))
+NodeRuntime.runMain(program(id, key))
+NodeRuntime.runMain(program(id, key))
+}
+
+main()
